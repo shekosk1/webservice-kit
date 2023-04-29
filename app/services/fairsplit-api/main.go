@@ -11,6 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var build = "develop"
+
 func main() {
 	log, err := logger.New("FAIRSPLIT-API")
 	if err != nil {
@@ -31,6 +33,7 @@ func run(log *zap.SugaredLogger) error {
 		GOMAXPROCS
 	*/
 	log.Infow("startup", "GOMAXPROCS", runtime.GOMAXPROCS(0))
+
 	defer log.Infow("shutdown")
 
 	shutdown := make(chan os.Signal, 1)

@@ -1,0 +1,30 @@
+FROM golang:1.19 as build_fairsplit-api
+ENV CGO_ENABLED 0
+ARG BUILD_REF
+
+# Copy source code into container /src folder.
+COPY . /src
+
+# Build go binary.
+WORKDIR /src/app/services/fairsplit-api
+RUN go build -ldflags "-X main.build=${BUILD_REF}"
+
+# Run go binary in Alpine.
+FROM alpine:3.17
+ARG BUILD_DATE
+ARG BUILD_REF
+
+RUN addgroup -g 1000 -S goapps && \
+    adduser -u 1000 -h /src -G goapps -S fairsplit
+
+COPY --from=build_fairsplit-api --chown=goapps:fairsplit /src/app/services/fairsplit-api/fairsplit-api /service/fairsplit-api
+WORKDIR /service
+USER fairsplit
+CMD ["./fairsplit-api"]
+
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.title="fairsplit-api" \
+      org.opencontainers.image.authors="Nicolás Pacheco" \
+      org.opencontainers.image.source="https://github.com/shekosk1/webservice-kit" \
+      org.opencontainers.image.revision="${BUILD_REF}" \
+      org.opencontainers.image.vendor="shekosk1"
