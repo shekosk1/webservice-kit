@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fairsplit
+  namespace: fairsplit-system
+spec:
+  selector:
+    matchLabels:
+      app: fairsplit
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: fairsplit
+    spec:
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
