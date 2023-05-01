@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/shekosk1/webservice-kit/foundation/logger"
+	"go.uber.org/automaxprocs/maxprocs"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +33,10 @@ func run(log *zap.SugaredLogger) error {
 	/*
 		GOMAXPROCS
 	*/
+	opt := maxprocs.Logger(log.Infof)
+	if _, err := maxprocs.Set(opt); err != nil {
+		return fmt.Errorf("maxprocs: %w", err)
+	}
 	log.Infow("startup", "GOMAXPROCS", runtime.GOMAXPROCS(0))
 
 	defer log.Infow("shutdown")
