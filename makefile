@@ -52,3 +52,7 @@ dev-describe-deployment:
 
 dev-describe-fairsplit:
 	kubectl describe pod --namespace=fairsplit-system -l app=fairsplit
+
+dev-update: all dev-load dev-restart
+
+dev-update-apply: all dev-load dev-apply
