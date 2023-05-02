@@ -1,5 +1,8 @@
 VERSION := 1.0
 
+help:
+	go run app/services/fairsplit-api/main.go --help
+
 all: fairsplit
 
 fairsplit:
