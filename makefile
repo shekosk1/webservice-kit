@@ -1,4 +1,6 @@
-VERSION := 1.0
+VERSION 	 := 1.0
+# ==============================================================================
+# Build containers
 
 help:
 	go run app/services/fairsplit-api/main.go --help
@@ -14,9 +16,18 @@ fairsplit:
 		.
 
 # ==============================================================================
-# Running from within k8s/kind
+# Run from within k8s/kind
+# http://fairsplit-service.fairsplit-system.svc.cluster.local:4000
 
 KIND_CLUSTER := fairsplit-starter-cluster
+
+GOLANG       := golang:1.19
+ALPINE       := alpine:3.17
+KIND         := kindest/node:v1.25.3
+POSTGRES     := postgres:15-alpine
+VAULT        := hashicorp/vault:1.12
+ZIPKIN       := openzipkin/zipkin:2.23
+TELEPRESENCE := docker.io/datawire/tel2:2.10.4
 
 dev-up:
 	kind create cluster \
@@ -24,8 +35,15 @@ dev-up:
 		--name $(KIND_CLUSTER) \
 		--config zarf/k8s/dev/kind-config.yaml
 	kubectl wait --timeout=120s --namespace=local-path-storage --for=condition=Available deployment/local-path-provisioner
+	
+	kind load docker-image $(TELEPRESENCE) --name $(KIND_CLUSTER)
+	
+	telepresence --context=kind-$(KIND_CLUSTER) helm install
+#   telepresence --context=kind-$(KIND_CLUSTER) connect
+	sudo telepresence --context=kind-$(KIND_CLUSTER) connect 
 
 dev-down:
+	telepresence quit -s
 	kind delete cluster --name $(KIND_CLUSTER)
 
 dev-load:
