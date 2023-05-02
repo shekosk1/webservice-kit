@@ -3,7 +3,7 @@ VERSION 	 := 1.0
 # Build containers
 
 help:
-	go run app/services/fairsplit-api/main.go --help
+	go run app/services/fairsplit-api/main.go --help  | go run app/tooling/logfmt/main.go
 
 all: fairsplit
 
@@ -63,6 +63,9 @@ dev-status:
 
 dev-logs:
 	kubectl logs --namespace=fairsplit-system -l app=fairsplit --all-containers=true -f --tail=100 --max-log-requests=6
+
+dev-logs-fmt:
+	kubectl logs --namespace=fairsplit-system -l app=fairsplit --all-containers=true -f --tail=100 --max-log-requests=6 | go run app/tooling/logfmt/main.go -service=FAIRSPLIT-API
 
 dev-describe:
 	kubectl describe nodes
