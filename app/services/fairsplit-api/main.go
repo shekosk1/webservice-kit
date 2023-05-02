@@ -3,12 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
 
+	"github.com/shekosk1/webservice-kit/business/web/v1/debug"
 	"github.com/shekosk1/webservice-kit/foundation/logger"
 	"go.uber.org/automaxprocs/maxprocs"
 	"go.uber.org/zap"
@@ -35,7 +37,7 @@ func main() {
 
 func run(log *zap.SugaredLogger) error {
 	/*==========================================================================
-		GOMAXPROCS
+		GOMAXPROCS.
 	==========================================================================*/
 
 	opt := maxprocs.Logger(log.Infof)
@@ -46,7 +48,7 @@ func run(log *zap.SugaredLogger) error {
 	defer log.Infow("shutdown")
 
 	/*==========================================================================
-		CONFIGURATION
+		App Config.
 	==========================================================================*/
 
 	cfg := struct {
@@ -57,7 +59,7 @@ func run(log *zap.SugaredLogger) error {
 			IdleTimeout     time.Duration `conf:"default:180s"`
 			ShutdownTimeout time.Duration `conf:"default:20s"`
 			APIHost         string        `conf:"default:0.0.0.0:3000"`
-			DebugHost       string        `conf:"default:0.0.0.0:4000,mask"`
+			DebugHost       string        `conf:"default:0.0.0.0:4000"`
 		}
 	}{
 		Version: conf.Version{
@@ -77,7 +79,7 @@ func run(log *zap.SugaredLogger) error {
 	}
 
 	/*==========================================================================
-		APP - STARTUP
+		App startup - Print config.
 	==========================================================================*/
 
 	log.Infow("starting service", "version", build)
@@ -88,6 +90,18 @@ func run(log *zap.SugaredLogger) error {
 		return fmt.Errorf("generating config for output: %w", err)
 	}
 	log.Infow("startup", "config", out)
+
+	/*==========================================================================
+		App startup - Debug service.
+	==========================================================================*/
+
+	log.Infow("startup", "status", "debug v1 router started", "host", cfg.Web.DebugHost)
+
+	go func() {
+		if err := http.ListenAndServe(cfg.Web.DebugHost, debug.StandardLibraryMux()); err != nil {
+			log.Errorw("shutdown", "status", "debug router closed", "host", cfg.Web.DebugHost, "ERROR", err)
+		}
+	}()
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)

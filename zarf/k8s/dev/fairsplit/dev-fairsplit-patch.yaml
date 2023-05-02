@@ -24,3 +24,20 @@ spec:
             cpu: "2000m" # Up to 2 full cores
           requests:
             cpu: "1000m" # Use 1 full cores
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fairsplit-service
+  namespace: fairsplit-system
+spec:
+  selector:
+    app: fairsplit
+  type: ClusterIP
+  ports:
+  - name: fairsplit-api
+    port: 3000
+    targetPort: fairsplit-api
+  - name: fairsplit-debug
+    port: 4000
+    targetPort: fairsplit-debug
