@@ -2,16 +2,22 @@ package testgrp
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
+
+	"github.com/shekosk1/webservice-kit/foundation/web"
 )
 
 // Status represents a test handler for now.
 func Status(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	status := struct {
+	data := struct {
 		Status string
 	}{
-		Status: "TEST OK",
+		Status: "TEST_OK",
 	}
-	return json.NewEncoder(w).Encode(status)
+	return web.Respond(ctx, w, data, http.StatusOK)
+}
+
+// Status represents a test handler for now.
+func Empty(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	return web.Respond(ctx, w, nil, http.StatusNoContent)
 }
