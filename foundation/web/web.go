@@ -16,19 +16,25 @@ type Handler func(ctx context.Context, w http.ResponseWriter, r *http.Request) e
 type App struct {
 	*chi.Mux
 	shutdown chan os.Signal
+	mw       []Middleware
 }
 
 // NewApp returns an App value that handles a set of routes for the app.
-func NewApp(shudown chan os.Signal) *App {
+func NewApp(shudown chan os.Signal, mw ...Middleware) *App {
 	return &App{
 		Mux:      chi.NewMux(),
 		shutdown: shudown,
+		mw:       mw,
 	}
 }
 
 // Handle associates a handler function with the specified http method and path.
-func (a *App) Handle(method string, path string, handler Handler) {
+func (a *App) Handle(method string, path string, handler Handler, mw ...Middleware) {
+	handler = wrapMiddleware(mw, handler)
+	handler = wrapMiddleware(a.mw, handler)
+
 	h := func(w http.ResponseWriter, r *http.Request) {
+
 		//WIP LOG
 		if err := handler(r.Context(), w, r); err != nil {
 			return //WIP
