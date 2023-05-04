@@ -5,8 +5,10 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // Handler handles an http request.
@@ -34,12 +36,17 @@ func (a *App) Handle(method string, path string, handler Handler, mw ...Middlewa
 	handler = wrapMiddleware(a.mw, handler)
 
 	h := func(w http.ResponseWriter, r *http.Request) {
+		v := Values{
+			TraceID: uuid.NewString(),
+			Now:     time.Now().UTC(),
+		}
+		ctx := context.WithValue(r.Context(), key, &v)
 
-		//WIP LOG
-		if err := handler(r.Context(), w, r); err != nil {
+		if err := handler(ctx, w, r); err != nil {
 			return //WIP
 		}
-		//WIP LOG
+
+		//WIP
 	}
 
 	a.Mux.MethodFunc(method, path, h)
