@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/shekosk1/webservice-kit/app/services/fairsplit-api/handlers"
 	"github.com/shekosk1/webservice-kit/business/web/v1/debug"
 	"github.com/shekosk1/webservice-kit/foundation/logger"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -49,7 +50,7 @@ func run(log *zap.SugaredLogger) error {
 	defer log.Infow("shutdown")
 
 	/*==========================================================================
-		App Config.
+		App config.
 	==========================================================================*/
 
 	cfg := struct {
@@ -113,9 +114,16 @@ func run(log *zap.SugaredLogger) error {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
+	mux := handlers.APIMux(
+		handlers.APIMuxConfig{
+			Shutdown: shutdown,
+			Log:      log,
+		},
+	)
+
 	api := http.Server{
 		Addr:         cfg.Web.APIHost,
-		Handler:      nil,
+		Handler:      mux,
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 		IdleTimeout:  cfg.Web.IdleTimeout,
@@ -130,7 +138,7 @@ func run(log *zap.SugaredLogger) error {
 	}()
 
 	/*==========================================================================
-		App - Shutdown.
+		App shutdown.
 	==========================================================================*/
 
 	select {

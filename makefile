@@ -77,6 +77,9 @@ dev-describe-deployment:
 dev-describe-fairsplit:
 	kubectl describe pod --namespace=fairsplit-system -l app=fairsplit
 
+dev-describe-tel:
+	kubectl describe pod --namespace=ambassador -l app=traffic-manager
+
 dev-update: all dev-load dev-restart
 
 dev-update-apply: all dev-load dev-apply
