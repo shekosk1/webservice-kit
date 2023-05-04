@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/shekosk1/webservice-kit/app/services/fairsplit-api/handlers/v1/testgrp"
+	"github.com/shekosk1/webservice-kit/business/web/v1/mid"
 	"github.com/shekosk1/webservice-kit/foundation/web"
 	"go.uber.org/zap"
 )
@@ -20,7 +21,7 @@ type APIMuxConfig struct {
 func APIMux(cfg APIMuxConfig) *web.App {
 	app := web.NewApp(cfg.Shutdown)
 
-	app.Handle(http.MethodGet, "/test", testgrp.Status)
+	app.Handle(http.MethodGet, "/test", testgrp.Status, mid.Logger(cfg.Log))
 
 	return app
 
