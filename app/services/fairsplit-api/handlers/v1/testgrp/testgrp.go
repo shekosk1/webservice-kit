@@ -14,6 +14,7 @@ func Status(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	}{
 		Status: "TEST_OK",
 	}
+
 	return web.Respond(ctx, w, data, http.StatusOK)
 }
 
