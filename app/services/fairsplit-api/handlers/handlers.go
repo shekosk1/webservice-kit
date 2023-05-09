@@ -1,4 +1,4 @@
-// Package handlers manages the Fairsplit API
+// Package handlers manages the Fairsplit API.
 package handlers
 
 import (
@@ -19,7 +19,7 @@ type APIMuxConfig struct {
 
 // APIMux constructs an http handler with all the application routes.
 func APIMux(cfg APIMuxConfig) *web.App {
-	app := web.NewApp(cfg.Shutdown, mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Panics())
+	app := web.NewApp(cfg.Shutdown, mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
 
 	app.Handle(http.MethodGet, "/status", testgrp.Status)
 	app.Handle(http.MethodGet, "/empty", testgrp.Empty)
