@@ -21,8 +21,8 @@ type APIMuxConfig struct {
 func APIMux(cfg APIMuxConfig) *web.App {
 	app := web.NewApp(cfg.Shutdown)
 
-	app.Handle(http.MethodGet, "/status", testgrp.Status, mid.Logger(cfg.Log))
-	app.Handle(http.MethodGet, "/empty", testgrp.Empty, mid.Logger(cfg.Log))
+	app.Handle(http.MethodGet, "/status", testgrp.Status, mid.Logger(cfg.Log), mid.Errors(cfg.Log))
+	app.Handle(http.MethodGet, "/empty", testgrp.Empty, mid.Logger(cfg.Log), mid.Errors(cfg.Log))
 
 	return app
 
