@@ -22,8 +22,6 @@ func APIMux(cfg APIMuxConfig) *web.App {
 	app := web.NewApp(cfg.Shutdown, mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
 
 	app.Handle(http.MethodGet, "/status", testgrp.Status)
-	app.Handle(http.MethodGet, "/empty", testgrp.Empty)
-
 	return app
 
 }

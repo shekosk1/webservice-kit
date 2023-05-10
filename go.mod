@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/ardanlabs/conf/v3 v3.1.5
 	github.com/go-chi/chi/v5 v5.0.8
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
 	go.uber.org/automaxprocs v1.5.2
 	go.uber.org/zap v1.24.0

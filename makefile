@@ -18,6 +18,7 @@ fairsplit:
 # ==============================================================================
 # Run from within k8s/kind
 # http://fairsplit-service.fairsplit-system.svc.cluster.local:4000
+# http://fairsplit-service.fairsplit-system.svc.cluster.local:3000
 
 KIND_CLUSTER := fairsplit-starter-cluster
 
@@ -83,3 +84,12 @@ dev-describe-tel:
 dev-update: all dev-load dev-restart
 
 dev-update-apply: all dev-load dev-apply
+
+test-load:
+	hey -m GET -c 100 -n 10000 http://fairsplit-service.fairsplit-system.svc.cluster.local:3000/status
+
+test-load-e:
+	hey -m GET -c 100 -n 10000 http://fairsplit-service.fairsplit-system.svc.cluster.local:3000/empty
+
+test-load-p:
+	hey -m GET -c 100 -n 10000 http://fairsplit-service.fairsplit-system.svc.cluster.local:3000/testpanic
