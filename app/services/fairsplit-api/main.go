@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"expvar"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,8 +13,10 @@ import (
 	"time"
 
 	"github.com/shekosk1/webservice-kit/app/services/fairsplit-api/handlers"
+	"github.com/shekosk1/webservice-kit/business/web/auth"
 	"github.com/shekosk1/webservice-kit/business/web/v1/debug"
 	"github.com/shekosk1/webservice-kit/foundation/logger"
+	"github.com/shekosk1/webservice-kit/foundation/vault"
 	"go.uber.org/automaxprocs/maxprocs"
 	"go.uber.org/zap"
 
@@ -21,6 +24,8 @@ import (
 )
 
 var build = "develop"
+
+/* add hashicorp vault to config and foundation/vault */
 
 func main() {
 	log, err := logger.New("FAIRSPLIT-API")
@@ -38,8 +43,9 @@ func main() {
 }
 
 func run(log *zap.SugaredLogger) error {
+
 	/*==========================================================================
-		GOMAXPROCS.
+		SET GOMAXPROCS.
 	==========================================================================*/
 
 	opt := maxprocs.Logger(log.Infof)
@@ -47,10 +53,9 @@ func run(log *zap.SugaredLogger) error {
 		return fmt.Errorf("maxprocs: %w", err)
 	}
 	log.Infow("startup", "GOMAXPROCS", runtime.GOMAXPROCS(0))
-	defer log.Infow("shutdown")
 
 	/*==========================================================================
-		App config.
+		Set app config.
 	==========================================================================*/
 
 	cfg := struct {
@@ -62,6 +67,14 @@ func run(log *zap.SugaredLogger) error {
 			ShutdownTimeout time.Duration `conf:"default:20s"`
 			APIHost         string        `conf:"default:0.0.0.0:3000"`
 			DebugHost       string        `conf:"default:0.0.0.0:4000"`
+		}
+		Auth struct {
+			Issuer string `conf:"default:fairsplit project"`
+		}
+		Vault struct {
+			Address   string `conf:"default:http://vault-service.fairsplit-system.svc.cluster.local:8200"`
+			MountPath string `conf:"default:secret"`
+			Token     string `conf:"default:mytoken,mask"`
 		}
 	}{
 		Version: conf.Version{
@@ -81,7 +94,7 @@ func run(log *zap.SugaredLogger) error {
 	}
 
 	/*==========================================================================
-		App startup - Print config.
+		Print config.
 	==========================================================================*/
 
 	log.Infow("starting service", "version", build)
@@ -92,9 +105,34 @@ func run(log *zap.SugaredLogger) error {
 		return fmt.Errorf("generating config for output: %w", err)
 	}
 	log.Infow("startup", "config", out)
+	expvar.NewString("build").Set(build)
 
 	/*==========================================================================
-		App startup - Debug service.
+		Start auth support.
+	==========================================================================*/
+
+	log.Infow("startup", "status", "initializing authentication support")
+
+	vault, err := vault.New(vault.Config{
+		Address:   cfg.Vault.Address,
+		Token:     cfg.Vault.Token,
+		MountPath: cfg.Vault.MountPath,
+	})
+	if err != nil {
+		return fmt.Errorf("constructing vault: %w", err)
+	}
+
+	authCfg := auth.Config{
+		Log:       log,
+		KeyLookup: vault,
+	}
+
+	auth, err := auth.New(authCfg)
+	if err != nil {
+		return fmt.Errorf("constructing auth: %w", err)
+	}
+	/*==========================================================================
+		Start debug service.
 	==========================================================================*/
 
 	log.Infow("startup", "status", "debug v1 router started", "host", cfg.Web.DebugHost)
@@ -106,7 +144,7 @@ func run(log *zap.SugaredLogger) error {
 	}()
 
 	/*==========================================================================
-		App startup - API service.
+		Start API service.
 	==========================================================================*/
 
 	log.Infow("startup", "status", "initializing API service", "host", cfg.Web.APIHost)
@@ -114,16 +152,17 @@ func run(log *zap.SugaredLogger) error {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
-	mux := handlers.APIMux(
+	apiMux := handlers.APIMux(
 		handlers.APIMuxConfig{
 			Shutdown: shutdown,
 			Log:      log,
+			Auth:     auth,
 		},
 	)
 
 	api := http.Server{
 		Addr:         cfg.Web.APIHost,
-		Handler:      mux,
+		Handler:      apiMux,
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 		IdleTimeout:  cfg.Web.IdleTimeout,
@@ -144,6 +183,7 @@ func run(log *zap.SugaredLogger) error {
 	select {
 	case err := <-listenServerErrors:
 		return fmt.Errorf("server error: %w", err)
+
 	case stopSignal := <-shutdown:
 		log.Infow("shutdown", "status", "shutdown started", "signal", stopSignal)
 		defer log.Infow("shutdown", "status", "shutdown complete", "signal", stopSignal)
@@ -155,7 +195,6 @@ func run(log *zap.SugaredLogger) error {
 			api.Close()
 			return fmt.Errorf("could not stop server gracefully: %w", err)
 		}
-
 	}
 
 	return nil

@@ -18,12 +18,12 @@ var ErrForbidden = errors.New("attempted action is not allowed")
 // KeyLookup provides two methods to look up
 // private and public keys for JWT use.
 type KeyLookup interface {
-	PrivateKeyPEM(kid string) (pem string, err error)
-	PublicKeyPEM(kid string) (pem string, err error)
+	PrivateKey(kid string) (pem string, err error)
+	PublicKey(kid string) (pem string, err error)
 }
 
 // Config represents information required to initialize auth.
-type config struct {
+type Config struct {
 	Log *zap.SugaredLogger
 	KeyLookup
 }
@@ -39,7 +39,7 @@ type Auth struct {
 }
 
 // New creates an Auth to support authentication/authorization.
-func New(cfg config) (*Auth, error) {
+func New(cfg Config) (*Auth, error) {
 	a := Auth{
 		log:       cfg.Log,
 		keyLookup: cfg.KeyLookup,
@@ -56,7 +56,7 @@ func (a *Auth) GenerateToken(kid string, claims Claims) (string, error) {
 	token := jwt.NewWithClaims(a.method, claims)
 	token.Header["kid"] = kid
 
-	privateKeyPEM, err := a.keyLookup.PrivateKeyPEM(kid)
+	privateKeyPEM, err := a.keyLookup.PrivateKey(kid)
 	if err != nil {
 		return "", fmt.Errorf("private key: %w", err)
 	}
@@ -87,7 +87,7 @@ func (a *Auth) Authenticate(ctx context.Context, bearerToken string) (Claims, er
 			return nil, errors.New("kid not in header")
 		}
 
-		pem, err := a.keyLookup.PublicKeyPEM(kid.(string))
+		pem, err := a.keyLookup.PublicKey(kid.(string))
 		if err != nil {
 			return nil, err
 		}

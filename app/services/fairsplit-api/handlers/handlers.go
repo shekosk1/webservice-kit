@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/shekosk1/webservice-kit/app/services/fairsplit-api/handlers/v1/testgrp"
+	"github.com/shekosk1/webservice-kit/business/web/auth"
 	"github.com/shekosk1/webservice-kit/business/web/v1/mid"
 	"github.com/shekosk1/webservice-kit/foundation/web"
 	"go.uber.org/zap"
@@ -15,13 +16,14 @@ import (
 type APIMuxConfig struct {
 	Shutdown chan os.Signal
 	Log      *zap.SugaredLogger
+	Auth     *auth.Auth
 }
 
 // APIMux constructs an http handler with all the application routes.
 func APIMux(cfg APIMuxConfig) *web.App {
 	app := web.NewApp(cfg.Shutdown, mid.Logger(cfg.Log), mid.Errors(cfg.Log), mid.Metrics(), mid.Panics())
 
-	app.Handle(http.MethodGet, "/status", testgrp.Status)
+	app.Handle(http.MethodGet, "/status", testgrp.Status, mid.Authenticate(cfg.Auth))
 	return app
 
 }

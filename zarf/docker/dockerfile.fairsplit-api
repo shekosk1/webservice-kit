@@ -5,7 +5,11 @@ ARG BUILD_REF
 # Copy source code into container /src folder.
 COPY . /src
 
-# Build go binary.
+# Build admin binary.
+WORKDIR /src/app/tooling/fairsplit-admin
+RUN go build -ldflags "-X main.build=${BUILD_REF}"
+
+# Build service binary.
 WORKDIR /src/app/services/fairsplit-api
 RUN go build -ldflags "-X main.build=${BUILD_REF}"
 
@@ -17,6 +21,8 @@ ARG BUILD_REF
 RUN addgroup -g 1000 -S goapps && \
     adduser -u 1000 -h /src -G goapps -S fairsplit
 
+COPY --from=build_fairsplit-api --chown=goapps:fairsplit /src/zarf/keys/. /src/zarf/keys/.
+COPY --from=build_fairsplit-api --chown=goapps:fairsplit /src/app/tooling/fairsplit-admin/fairsplit-admin /service/fairsplit-admin
 COPY --from=build_fairsplit-api --chown=goapps:fairsplit /src/app/services/fairsplit-api/fairsplit-api /service/fairsplit-api
 WORKDIR /service
 USER fairsplit

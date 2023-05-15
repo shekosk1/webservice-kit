@@ -1,3 +1,15 @@
+# Hashicorp Vault
+# 	READ THIS: https://developer.hashicorp.com/vault/docs/concepts/tokens
+# 	$ export VAULT_TOKEN=mytoken
+# 	$ export VAULT_ADDR='http://vault-service.fairsplit-system.svc.cluster.local:8200'
+# 	$ vault secrets list
+# 	$ vault kv get secret/fairsplit
+# 	$ vault kv put secret/fairsplit key="some data"
+# 	$ kubectl logs --namespace=fairsplit-system -l app=fairsplit -c init-vault-server
+# 	$ curl -H "X-Vault-Token: mytoken" -X GET http://vault-service.fairsplit-system.svc.cluster.local:8200/v1/secret/data/54bb2165-71e1-41a6-af3e-7da4a0e1e2c1
+# 	$ curl -H "X-Vault-Token: mytoken" -H "Content-Type: application/json" -X POST -d '{"data":{"pk":"PEM"}}' http://vault-service.fairsplit-system.svc.cluster.local:8200/v1/secret/data/54bb2165-71e1-41a6-af3e-7da4a0e1e2c1
+#
+
 VERSION 	 := 1.0
 # ==============================================================================
 # Build containers
@@ -26,7 +38,7 @@ GOLANG       := golang:1.19
 ALPINE       := alpine:3.17
 KIND         := kindest/node:v1.25.3
 POSTGRES     := postgres:15-alpine
-VAULT        := hashicorp/vault:1.12
+VAULT        := hashicorp/vault:1.13
 ZIPKIN       := openzipkin/zipkin:2.23
 TELEPRESENCE := docker.io/datawire/tel2:2.10.4
 
@@ -38,6 +50,8 @@ dev-up:
 	kubectl wait --timeout=120s --namespace=local-path-storage --for=condition=Available deployment/local-path-provisioner
 	
 	kind load docker-image $(TELEPRESENCE) --name $(KIND_CLUSTER)
+	kind load docker-image $(VAULT) --name $(KIND_CLUSTER)
+
 	
 	telepresence --context=kind-$(KIND_CLUSTER) helm install
 #   telepresence --context=kind-$(KIND_CLUSTER) connect
@@ -48,9 +62,12 @@ dev-down:
 	kind delete cluster --name $(KIND_CLUSTER)
 
 dev-load:
+	cd zarf/k8s/dev/fairsplit; kustomize edit set image fairsplit-api-image=fairsplit-api:$(VERSION)
 	kind load docker-image fairsplit-api:$(VERSION) --name $(KIND_CLUSTER)
 
 dev-apply:
+	kustomize build zarf/k8s/dev/vault | kubectl apply -f -
+
 	kustomize build zarf/k8s/dev/fairsplit | kubectl apply -f -
 	kubectl wait --timeout=120s --namespace=fairsplit-system --for=condition=Available deployment/fairsplit
 
